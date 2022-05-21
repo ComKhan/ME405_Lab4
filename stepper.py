@@ -67,15 +67,16 @@ class stepper():
 
 def main():
     #initialize clk pin    
-    PC7 = Pin(Pin.cpu.C7, mode = Pin.OUT_PP,)
+    PC7 = Pin(Pin.cpu.C7, mode = Pin.OUT_PP,)  # PC7 configured for GPIO output
     tim = Timer(3, period = 3, prescaler = 0) #timer3 @ 80MHz
-    tim.channel(2, pin = PC7, mode = Timer.PWM, pulse_width = 2)
-    
-    #initialize cs pins
+    tim.channel(2, pin = PC7, mode = Timer.PWM, pulse_width = 2)  
+    # configures PC7 for PWM modulation to act as a clock signal
+
+    #initialize cs and en pins
     PC2 = Pin(Pin.cpu.C2, mode = Pin.OUT_PP, value = 1)  #CS1
     PC3 = Pin(Pin.cpu.C3, mode = Pin.OUT_PP, value = 1)  #CS2
-    PC4 = Pin(Pin.cpu.C4, mode = Pin.OUT_PP, value = 1)  #CS1
-    PC0 = Pin(Pin.cpu.C0, mode = Pin.OUT_PP, value = 1)  #CS2
+    PC4 = Pin(Pin.cpu.C4, mode = Pin.OUT_PP, value = 1)  #EN1
+    PC0 = Pin(Pin.cpu.C0, mode = Pin.OUT_PP, value = 1)  #EN2
 
     motor1 = stepper(PC2, PC4)
     motor2 = stepper(PC3, PC0)
