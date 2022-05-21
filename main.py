@@ -2,7 +2,6 @@ import newtonRaphson
 import pen
 import math
 from pyb import Pin
-import stepper
 
 def parseHPGL(filename):
     """Takes input hpgl file and outputs double nested list. First list is lines (only 1), second is instructions"""
@@ -17,14 +16,16 @@ def parseHPGL(filename):
 
     return lines
 
-def draw(listy, plotting):
+def draw(listy, lastloc, plotting):
     """Takes double nested list from parseHPGL function and outputs """
 
     for instr in listy:
         if instr[0] == 'IN ':
             pass    # will be used ot initialize whole thang
+        
         elif instr[0] == 'SP ':
             pass    # will be used to change colors
+
         elif instr[0] == 'PU ':
             plotting.drawing = 0
             interpolated_xy_points = interpolate(instrconv(instr)) # converting instruction into points and interpolation of that data
@@ -120,43 +121,5 @@ def pcalc(a_max, ramp_div, pulse_div):  ## is this a motor1.pcalc func now??
             if(0.95 < q and 1 > q):
                 return pmul, j
     return
-
-
-# This code creates a share, a queue, and two tasks, then starts the tasks. The
-# tasks run until somebody presses ENTER, at which time the scheduler stops and
-# printouts show diagnostic information about the tasks, share, and queue.
-if __name__ == "__main__":
-
-    # Create a share and a queue to test function and diagnostic printouts
-    share0 = task_share.Share ('I', thread_protect = False, name = "Share 0")
-    Time_Vals = task_share.Queue ('L', 1000, thread_protect = False, overwrite = False,
-                           name = "Time Vals")
-    ADC_Vals = task_share.Queue ('L', 1000, thread_protect = False, overwrite = False,
-                           name = "ADC Vals")
-
-    # Create the tasks. If trace is enabled for any task, memory will be
-    # allocated for state transition tracing, and the application will run out
-    # of memory after a while and quit. Therefore, use tracing only for 
-    # debugging and set trace to False when it's not needed
-    taskcom = cotask.Task (TaskComs, name = 'Task_1', priority = 2, 
-                         period = 1, profile = True, trace = False)
-    
-    
-    
-    
-    #cotask.task_list.append (taskbut)
-    cotask.task_list.append (taskcom)
-
-    # Run the memory garbage collector to ensure memory is as defragmented as
-    # possible before the real-time scheduler is started
-    gc.collect ()
-
-    # Run the scheduler with the chosen scheduling algorithm. Quit if any 
-    # character is received through the serial port
-    vcp = pyb.USB_VCP ()
-    while not vcp.any ():
-        cotask.task_list.pri_sched ()
-
-    # Empty the comm port buffer of the character(s) just pressed
-    vcp.read ()
+main()
     
