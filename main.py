@@ -1,6 +1,9 @@
 import newtonRaphson
 import pen
 import math
+from pyb import Pin
+import stepper
+
 def parseHPGL(filename):
     """Takes input hpgl file and outputs double nested list. First list is lines (only 1), second is instructions"""
     im = open(filename, "r")
@@ -32,7 +35,7 @@ def draw(listy, plotting):
 
         elif instr[0] == 'PD ':
             plotting.drawing = 1
-            interpolated_xy_points = interpolate(instrconv(instr)) # converting instruction into points and interpolation of that data
+            interpolated_xy_points = interpolate(instrconv(instr),lastloc, 10) # converting instruction into points and interpolation of that data
             interpolated_thetas = list(map(lambda point: newtonRaphson.myraph(point), interpolated_xy_points))  # converting target(x,y) -> target(theta1, theta2)
             x_actuals = [[x[0]/2/math.pi*384,(x[1]+x[0])/2/math.pi*384] for x in interpolated_thetas]
             #interpolate()
@@ -86,4 +89,74 @@ def main():
     listy = parseHPGL("drawing.hpgl")
     plotting = pen.drawer()
     draw(listy,plotting)
+    
+    #initialize clk pin    
+    PC7 = Pin(Pin.cpu.C7, mode = Pin.OUT_PP,)  # PC7 configured for GPIO output
+    tim = Timer(3, period = 3, prescaler = 0) #timer3 @ 80MHz
+    tim.channel(2, pin = PC7, mode = Timer.PWM, pulse_width = 2)  
+    # configures PC7 for PWM modulation to act as a clock signal
+
+    #initialize cs and en pins
+    PC2 = Pin(Pin.cpu.C2, mode = Pin.OUT_PP, value = 1)  #CS1
+    PC3 = Pin(Pin.cpu.C3, mode = Pin.OUT_PP, value = 1)  #CS2
+    PC4 = Pin(Pin.cpu.C4, mode = Pin.OUT_PP, value = 1)  #EN1
+    PC0 = Pin(Pin.cpu.C0, mode = Pin.OUT_PP, value = 1)  #EN2
+
+    motor1 = stepper(PC2, PC4)
+    motor2 = stepper(PC3, PC0)
+    
+    listy = parseHPGL("drawing.hpgl")
+    plotting = pen.drawer()
+    draw(listy,plotting)
+
+
+def pcalc(a_max, ramp_div, pulse_div):  ## is this a motor1.pcalc func now??
+    for pmul in range(128,256,1):
+        for j in range(14):
+            pdiv = 8*(2**j)
+            p = a_max/(128*(2**(ramp_div-pulse_div)))
+            pd = pmul/pdiv
+            q = pd/p
+            if(0.95 < q and 1 > q):
+                return pmul, j
+    return
+
+
+# This code creates a share, a queue, and two tasks, then starts the tasks. The
+# tasks run until somebody presses ENTER, at which time the scheduler stops and
+# printouts show diagnostic information about the tasks, share, and queue.
+if __name__ == "__main__":
+
+    # Create a share and a queue to test function and diagnostic printouts
+    share0 = task_share.Share ('I', thread_protect = False, name = "Share 0")
+    Time_Vals = task_share.Queue ('L', 1000, thread_protect = False, overwrite = False,
+                           name = "Time Vals")
+    ADC_Vals = task_share.Queue ('L', 1000, thread_protect = False, overwrite = False,
+                           name = "ADC Vals")
+
+    # Create the tasks. If trace is enabled for any task, memory will be
+    # allocated for state transition tracing, and the application will run out
+    # of memory after a while and quit. Therefore, use tracing only for 
+    # debugging and set trace to False when it's not needed
+    taskcom = cotask.Task (TaskComs, name = 'Task_1', priority = 2, 
+                         period = 1, profile = True, trace = False)
+    
+    
+    
+    
+    #cotask.task_list.append (taskbut)
+    cotask.task_list.append (taskcom)
+
+    # Run the memory garbage collector to ensure memory is as defragmented as
+    # possible before the real-time scheduler is started
+    gc.collect ()
+
+    # Run the scheduler with the chosen scheduling algorithm. Quit if any 
+    # character is received through the serial port
+    vcp = pyb.USB_VCP ()
+    while not vcp.any ():
+        cotask.task_list.pri_sched ()
+
+    # Empty the comm port buffer of the character(s) just pressed
+    vcp.read ()
     
