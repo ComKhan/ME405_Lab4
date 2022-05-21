@@ -1,37 +1,61 @@
+from turtle import color
 import serial
 import numpy as np
 import matplotlib.pyplot as plt
-ser = serial.Serial('COM4', 115200)
-while True:
-    try:
-        ser.flush()
+import math
+from matplotlib.animation import FuncAnimation
 
-        voltage = []
-        time = []
-        logvals = []
+def getserial(ser):
+    thetas = []
+    plot = []
+    vals = [0, 0, 0, 1, 1]
 
-        while len(voltage) < 1000:
-            if ser.in_waiting > 1:
-                read = str(ser.readline())[2:-5]
-                vals = read.split(',')
-                time.append(int(vals[0])/1000)
-                voltage.append(int(vals[1])/3909*3.3)
-                print(read)
+    while vals[3] != 0:
+        if ser.in_waiting > 1:
+            read = str(ser.readline())[2:-5]
+            vals = read.split(',')
+            thetas.append([vals[0], vals[1]])
+            plot.append(vals[2])
+            print(read)
 
-        plt.plot(time, voltage)
-        plt.title("Voltage vs. Time")
-        plt.ylabel("Voltage (V)")
-        plt.xlabel("Time (s)")
-        plt.show()
-        logvals = list(map(lambda x: np.log(x), voltage))
-        plt.plot(time,logvals)
-        plt.title("Log of Voltage vs. Time")
-        plt.ylabel("Log of Voltage (log(V))")
-        plt.xlabel("Time (s)")
-        plt.show()
-        slope = (logvals[999]-logvals[0])/(time[999]-time[0])
-        print(slope)
-    except KeyboardInterrupt:
-        break
+    return thetas, plot, vals
 
+def main():
+    ser = serial.Serial('COM4', 115200)
+    ser.flush()
+    vals = [0,0,0,0,1]
+    thets = []
+    plot = []
+    while vals[4] != 0:
+        templist1, templist2, vals = getserial(ser)
+        thets.append(templist1)
+        plot.append(templist1)
+
+    fig, ax = plt.subplots()\
+    
+    x = [math.cos(theta[0])+ math.cos(theta[1]) for theta in thets]
+    y = [math.sin(theta[0])+ math.sin(theta[1]) for theta in thets]
+
+    ax.set_aspect('equal', adjustable='box')
+    ax.set_xlim(-2,2)
+    ax.set_ylim(-2,2)
+
+    def animate(i):
+        ax.lines.clear()
+        theta = thets[i]
+        for j in range(len(thets[:i])-1):
+            if plot[j] == 1 and plot[j+1] == 1:
+                ax.plot([x[j],x[j+1]],[y[j],y[j+1]], color = "black")
+        x1 = [0,math.cos(theta[0])]
+        y1 = [0,math.sin(theta[0])]
+        x2 = [math.cos(theta[0]), math.cos(theta[0])+ math.cos(theta[1])]
+        y2 = [math.sin(theta[0]), math.sin(theta[0])+ math.sin(theta[1])]
+        ax.plot(x1,y1,x2,y2, color = "red")
+        return theta
+
+    anim = FuncAnimation(fig,animate,interval = 1, frames = len(thets))
+    plt.close()
+    anim.save("func.gif", fps = 30)
+
+    
 
