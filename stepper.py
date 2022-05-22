@@ -92,6 +92,5 @@ def pcalc(a_max, ramp_div, pulse_div):  ## is this a motor1.pcalc func now??
             if(0.95 < q and 1 > q):
                 return pmul, j
     return
-main()
 
 
