@@ -1,6 +1,5 @@
 import unittest
 
-from sympy import interpolate
 from hpproc import *
 
 
@@ -15,6 +14,19 @@ class Tests(unittest.TestCase):
         curnode = [0,1]
         resolution = 10
         print(interpolate(instrList, curnode, resolution))
+
+    def test_instr_conv1(self):
+        instrList = ['PD', '25', '30', '40', '52']
+        self.assertEqual(instrconv(instrList), [[25, 30], [40, 52]])
+
+    def test_instr_conv2(self):
+        instrList = ['PD', '25', '30', '40', '-52']
+        self.assertEqual(instrconv(instrList), [[25, 30], [40, -52]])
+
+    def test_instr_conv2(self):
+        instrList = ['PU', '25', '30', '40', '-52']
+        self.assertEqual(instrconv(instrList), [[25, 30], [40, -52]])
+
         
 
 if __name__ == '__main__':

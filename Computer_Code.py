@@ -5,34 +5,20 @@ import matplotlib.pyplot as plt
 import math
 from matplotlib.animation import FuncAnimation
 
-def getserial(ser):
-    thetas = []
-    plot = []
-    vals = [0, 0, 0, 1, 1]
-
-    while vals[3] != 0:
-        if ser.in_waiting > 1:
-            read = str(ser.readline())[2:-5]
-            vals = read.split(',')
-            thetas.append([vals[0], vals[1]])
-            plot.append(vals[2])
-            print(read)
-
-    return thetas, plot, vals
-
 def main():
     ser = serial.Serial('COM4', 115200)
-    ser.flush()
-    vals = [0,0,0,0,1]
+    ser.flush
+    vals = [0,0,0,0,0]
     thets = []
     plot = []
-    while vals[4] != 0:
+    while vals[4] != 1:
+        print("loop1")
         templist1, templist2, vals = getserial(ser)
-        thets.append(templist1)
-        plot.append(templist1)
+        thets += templist1
+        plot += templist2
 
-    fig, ax = plt.subplots()\
-    
+    fig, ax = plt.subplots()
+    print(thets)
     x = [math.cos(theta[0])+ math.cos(theta[1]) for theta in thets]
     y = [math.sin(theta[0])+ math.sin(theta[1]) for theta in thets]
 
@@ -58,4 +44,19 @@ def main():
     anim.save("func.gif", fps = 30)
 
     
+def getserial(ser):
+    thetas = []
+    plot = []
+    vals = [0, 0, 0, 0, 0]
 
+    while vals[3] != 1:
+        if ser.in_waiting > 1:
+            read = str(ser.readline())[2:-5]
+            vals = read.split(',')
+            vals = [float(val) for val in vals]
+            thetas.append([vals[0], vals[1]])
+            plot.append(vals[2])
+
+    return thetas, plot, vals
+
+main()

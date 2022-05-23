@@ -4,7 +4,7 @@ from matplotlib.animation import FuncAnimation
 import math
 
 def f(theta):
-    return [50*math.cos(theta[0])+math.cos(theta[1]) , 50*math.sin(theta[0])+math.sin(theta[1])]
+    return [50*math.cos(theta[0])+50*math.cos(theta[1]) , 50*math.sin(theta[0])+50*math.sin(theta[1])]
 
 def g(x, theta):
     return np.subtract(np.array(x), np.array(f(theta)))
