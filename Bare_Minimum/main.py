@@ -4,19 +4,20 @@ from pyb import repl_uart
 from ulab import numpy as np
 import gc
 import pyb
+import stepper
 import cotask
 import task_share
-from stepper import *
-from pen import *
 import math
 
 
-class solenoidobj():
+class drawer():
     def __init__(self):
         self.drawing = 0
 
+
+
 def f(theta):
-    return [50*math.cos(theta[0])+50*math.cos(theta[1]) , 50*math.sin(theta[0])+50*math.sin(theta[1])]
+    return [50*math.cos(theta[0]) + math.cos(theta[1]) , 50*math.sin(theta[0]) + math.sin(theta[1])]
 
 def g(x, theta):
     return np.array(x) - np.array(f(theta))
@@ -27,12 +28,13 @@ def dg_dtheta(theta):
 def NewtonRaphson(fcn, jacobian, guess, thresh):
     theta = guess
     while(abs(fcn(theta)[0]) > thresh or abs(fcn(theta)[1]) > thresh):
-        theta = theta - np.dot(np.linalg.inv(jacobian(theta)) , fcn(theta))
+        theta = theta - (np.linalg.inv(jacobian(theta)) * fcn(theta))
     return theta
 
 def myraph(dest, guess):
-    theta = NewtonRaphson(lambda theta: g(dest,theta), dg_dtheta, guess, 1e-4)
+    theta = NewtonRaphson(lambda theta: g(dest,theta), dg_dtheta, guess, 1e-6)
     return theta
+
 
 
 
@@ -56,13 +58,13 @@ def draw(listy, plotting):
     plots = []
     lastloc = [0,0]
     for instr in listy:
-        if instr[0] == 'IN':
+        if instr[0] == 'IN ':
             pass    # will be used ot initialize whole thang
         
-        elif instr[0] == 'SP':
+        elif instr[0] == 'SP ':
             pass    # will be used to change colors
 
-        elif instr[0] == 'PU':
+        elif instr[0] == 'PU ':
             plotting.drawing = 0
             interpolated_instr_points = interpolate(instrconv(instr),lastloc)
             interpolated_xy_points.append(interpolated_instr_points) # converting instruction into points and interpolation of that data
@@ -77,13 +79,13 @@ def draw(listy, plotting):
             Y_Vals.put(interpolated_instr_points[-1][1])
             endofinstruction_Vals.put(1)
             endoffile_Vals.put(0)
-            lastloc = interpolated_instr_points[-1]
+            lastloc = interpolated_xy_points[-1]
             #x_actuals = [[x[0]/2/math.pi*384,(x[1]+x[0])/2/math.pi*384] for x in interpolated_thetas]
 
             # funtion to raise solenoid
             # loop to move through target locations
 
-        elif instr[0] == 'PD':
+        elif instr[0] == 'PD ':
             plotting.drawing = 1
             interpolated_instr_points = interpolate(instrconv(instr),lastloc)
             interpolated_xy_points.append(interpolated_instr_points) # converting instruction into points and interpolation of that data
@@ -98,7 +100,7 @@ def draw(listy, plotting):
             Y_Vals.put(interpolated_instr_points[-1][1])
             endofinstruction_Vals.put(1)
             endoffile_Vals.put(0)
-            lastloc = interpolated_instr_points[-1]
+            lastloc = interpolated_xy_points[-1]
             #x_actuals = [[x[0]/2/math.pi*384,(x[1]+x[0])/2/math.pi*384] for x in interpolated_thetas]
 
             #interpolate()
@@ -118,13 +120,11 @@ def instrconv(instr):
     i = 0
     target = [0]*2
     motor_in = []
-    if instr[0] == '':
-        return [[0,0]]
-    while(i < len(instr)):
-        target[0] = int(instr[i])
-        target[1] = int(instr[i+1])
-        motor_in.append([target[0], target[1]])
-        i += 2
+    while(i*2 < len(listy)):
+        target[0] = list[i]
+        target[1] = list[i+1]
+        motor_in.append(target)
+        i +=1
     return motor_in
 
 def interpolate(targets, curr_location, resolution = 1):
@@ -135,6 +135,7 @@ def interpolate(targets, curr_location, resolution = 1):
         print("not a valid current location")
         return None
     interpolated_list = []
+    print("\n")
     targets.insert(0, [curr_location[0], curr_location[1]])
     for i in range(len(targets)-1):  # want to interpolate between all items in list
         interpolated_list.append(targets[i])  # always add current target
@@ -144,18 +145,14 @@ def interpolate(targets, curr_location, resolution = 1):
         distance_y = y_new - y_old
         hyp = math.sqrt(distance_x**2 + distance_y**2)
         num_steps = hyp*resolution
-        if num_steps == 0:
-            curr_location = [x_new, y_new]
-            interpolated_list.append([curr_location[0], curr_location[1]])
-        else:
-            delta_x = distance_x/(num_steps)
-            delta_y = distance_y/(num_steps)
-            increment = float(1) / resolution  # increment defines how much our motor should move per point after interpolating
-            for i in range(int(num_steps-1)):
-                    curr_location[0] = curr_location[0] + delta_x
-                    curr_location[1] = curr_location[1] + delta_y
-                    interpolated_list.append([curr_location[0], curr_location[1]])
-            curr_location = [x_new, y_new]
+        delta_x = distance_x/(num_steps)
+        delta_y = distance_y/(num_steps)
+        increment = float(1) / resolution  # increment defines how much our motor should move per point after interpolating
+        for i in range(int(num_steps-1)):
+                curr_location[0] = curr_location[0] + delta_x
+                curr_location[1] = curr_location[1] + delta_y
+                interpolated_list.append([curr_location[0], curr_location[1]])
+        curr_location = [x_new, y_new]
     interpolated_list.append([targets[-1][0],targets[-1][1]])
     return interpolated_list
 
@@ -172,106 +169,62 @@ def pcalc(a_max, ramp_div, pulse_div):  ## is this a motor1.pcalc func now??
 
 def TaskFindThetas():
     theta = []
-    lastthet1 = math.pi/4
-    lastthet2 = math.pi/6
     while X_Vals.num_in() > 0:
-        curx = X_Vals.get()+60
-        cury = Y_Vals.get()
-        theta = myraph([curx,cury], [lastthet1, lastthet2])  # converting target(x,y) -> target(theta1, theta2)
-        
-        #small arm theta calcs
-        if theta[0] > 0:
-            theta[0] = theta[0] % (math.pi*2)
-            if theta[0] > math.pi:
-                theta[0] = theta[0] - (math.pi*2)
-        else:
-            theta[0] = theta[0] % (math.pi*2)
-            if theta[0] > math.pi:
-                theta[0] = theta[0] - (math.pi*2)
-
-        #small arm theta calcs
-        if theta[1] > 0:
-            theta[1] = theta[1] % (math.pi*2)
-            if theta[1] > math.pi:
-                theta[1] = theta[1] - (math.pi*2)
-        else:
-            theta[1] = theta[1] % (math.pi*2)
-            if theta[1] > math.pi:
-                theta[1] = theta[1] - (math.pi*2)
-
-        lastthet1 = theta[0]
-        lastthet2 = theta[1]
-        solenoid1 = solenoid.get()
-        end_of_instr = endofinstruction_Vals.get()
-        end_file = endoffile_Vals.get()
-        stuff = ("{:},{:},{:},{:},{:}\r\n".format(theta[0], theta[1], solenoid1, end_of_instr, end_file))
-        uart.write(stuff)
-        TaskMoveMotors(theta[0], theta[1], solenoid1)
-        yield (0)
-    while True:
-        yield (0)
-
-def TaskMoveMotors(theta1, theta2, solenoid):
-    """if solenoid:
-        actuaute_solenoid(soelnoid)"""
-    motor2.setloc(theta1)
-    motor1.setloc(theta2-theta1)
-    print(solenoid)
-    PB8.value(solenoid)
-    
+        theta = myraph([X_Vals.get()+60, Y_Vals.get()])  # converting target(x,y) -> target(theta1, theta2)
+        stuff = ("{:},{:},{:},{:},{:}\r\n".format(theta[0], theta[1], solenoid.get(), endofinstruction_Vals.get(), endoffile_Vals.get()))
 
 
 
 
 if __name__ == "__main__":
+    uart = pyb.UART(2, 115200)
+    uart.init(115200, bits=8, parity=None, stop = 1)
 
-    #initialize clk pin    
-    PC7 = Pin(Pin.cpu.C7, mode = Pin.OUT_PP,)  # PC7 configured for GPIO output
-    tim = Timer(3, period = 3, prescaler = 0) #timer3 @ 80MHz
-    tim.channel(2, pin = PC7, mode = Timer.PWM, pulse_width = 2)
-    PB8 = Pin(Pin.cpu.B8, mode = Pin.OUT_PP)  # solenoid pin
-    # configures PC7 for PWM modulation to act as a clock signal
-
-    #initialize cs and en pins
-    PC2 = Pin(Pin.cpu.C2, mode = Pin.OUT_PP, value = 1)  #CS1
-    PC3 = Pin(Pin.cpu.C3, mode = Pin.OUT_PP, value = 1)  #CS2
-    PC4 = Pin(Pin.cpu.C4, mode = Pin.OUT_PP, value = 1)  #EN1
-    PC0 = Pin(Pin.cpu.C0, mode = Pin.OUT_PP, value = 1)  #EN2
+    listy = parseHPGL("drawing.hpgl")
+    plotting = drawer()
+    draw(listy,plotting)
     
-    motor1 = stepper(PC2, PC4)
-    motor2 = stepper(PC3, PC0)
+    #initialize clk pin    
+    # PC7 = Pin(Pin.cpu.C7, mode = Pin.OUT_PP,)  # PC7 configured for GPIO output
+    # tim = Timer(3, period = 3, prescaler = 0) #timer3 @ 80MHz
+    # tim.channel(2, pin = PC7, mode = Timer.PWM, pulse_width = 2)  
+    # # configures PC7 for PWM modulation to act as a clock signal
+
+    # #initialize cs and en pins
+    # PC2 = Pin(Pin.cpu.C2, mode = Pin.OUT_PP, value = 1)  #CS1
+    # PC3 = Pin(Pin.cpu.C3, mode = Pin.OUT_PP, value = 1)  #CS2
+    # PC4 = Pin(Pin.cpu.C4, mode = Pin.OUT_PP, value = 1)  #EN1
+    # PC0 = Pin(Pin.cpu.C0, mode = Pin.OUT_PP, value = 1)  #EN2
+
+    # motor1 = stepper(PC2, PC4)
+    # motor2 = stepper(PC3, PC0)
 
     # Create a share and a queue to test function and diagnostic printouts
 
-    X_Vals = task_share.Queue ('f', 1000, thread_protect = False, overwrite = False,
+    X_Vals = task_share.Queue ('f', 25000, thread_protect = False, overwrite = False,
                            name = "X Values")
 
-    Y_Vals = task_share.Queue ('f', 1000, thread_protect = False, overwrite = False,
+    Y_Vals = task_share.Queue ('f', 25000, thread_protect = False, overwrite = False,
                            name = "Y Values")
 
-    solenoid = task_share.Queue ('i', 1000, thread_protect = False, overwrite = False,
+    solenoid = task_share.Queue ('i', 25000, thread_protect = False, overwrite = False,
                            name = "sol")
-    endofinstruction_Vals = task_share.Queue ('i', 1000, thread_protect = False, overwrite = False,
+    endofinstruction_Vals = task_share.Queue ('i', 25000, thread_protect = False, overwrite = False,
                            name = "EOI")
-    endoffile_Vals = task_share.Queue ('i', 1000, thread_protect = False, overwrite = False,
+    endoffile_Vals = task_share.Queue ('i', 25000, thread_protect = False, overwrite = False,
                            name = "EOF")
 
     # Create the tasks. If trace is enabled for any task, memory will be
     # allocated for state transition tracing, and the application will run out
     # of memory after a while and quit. Therefore, use tracing only for 
     # debugging and set trace to False when it's not needed
-    findthet = cotask.Task (TaskFindThetas, name = 'Task_1', priority = 2, 
-                         period = 10, profile = True, trace = False)
+    findthet = cotask.Task (TaskFindThetas, name = 'Task_1', priority = 1, 
+                         period = 1000, profile = True, trace = False)
 
-    uart = pyb.UART(2, 115200)
-    uart.init(115200, bits=8, parity=None, stop = 1)
 
-    listy = parseHPGL("drawing.hpgl")
-    plotting = solenoidobj()
-    draw(listy,plotting)
     
     #cotask.task_list.append (taskbut)
-    cotask.task_list.append(findthet)
+    cotask.task_list.append (findthet)
 
     # Run the memory garbage collector to ensure memory is as defragmented as
     # possible before the real-time scheduler is started
@@ -281,12 +234,10 @@ if __name__ == "__main__":
     # character is received through the serial port
     vcp = pyb.USB_VCP ()
     while not vcp.any ():
-        cotask.task_list.pri_sched()
+        cotask.task_list.pri_sched ()
 
     # Empty the comm port buffer of the character(s) just pressed
     vcp.read ()
-    
-    
 
 
 

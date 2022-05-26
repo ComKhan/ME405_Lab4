@@ -27,7 +27,7 @@ tim = Timer(6, freq = 1000) #timer6 @ 1kHz
 button_int = ExtInt(Pin.cpu.C13, ExtInt.IRQ_FALLING,
                     Pin.PULL_NONE, lambda p: read_ckt())
 
-class drawer():
+class solenoidobj():
     def __init__(self):
         self.drawing = 0
 
