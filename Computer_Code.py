@@ -43,6 +43,11 @@ def main():
     plt.close()
     anim.save("func.gif", fps = 30)
 
+    plt.figure(1)
+    theta_1, = plt.plot(range(len(thets)), [theta[1] for theta in thets])
+    theta_0, = plt.plot(range(len(thets)), [theta[0] for theta in thets])
+    plt.legend([theta_0, theta_1], ["theta 0", "theta 1"])
+    plt.show()
     
 def getserial(ser):
     thetas = []

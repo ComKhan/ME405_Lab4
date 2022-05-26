@@ -176,6 +176,27 @@ def TaskFindThetas():
         curx = X_Vals.get()+60
         cury = Y_Vals.get()
         theta = myraph([curx,cury], [lastthet1, lastthet2])  # converting target(x,y) -> target(theta1, theta2)
+        
+        #small arm theta calcs
+        if theta[0] > 0:
+            theta[0] = theta[0] % (math.pi*2)
+            if theta[0] > math.pi:
+                theta[0] = theta[0] - (math.pi*2)
+        else:
+            theta[0] = theta[0] % (math.pi*2)
+            if theta[0] > math.pi:
+                theta[0] = theta[0] - (math.pi*2)
+
+        #small arm theta calcs
+        if theta[1] > 0:
+            theta[1] = theta[1] % (math.pi*2)
+            if theta[1] > math.pi:
+                theta[1] = theta[1] - (math.pi*2)
+        else:
+            theta[1] = theta[1] % (math.pi*2)
+            if theta[1] > math.pi:
+                theta[1] = theta[1] - (math.pi*2)
+
         lastthet1 = theta[0]
         lastthet2 = theta[1]
         stuff = ("{:},{:},{:},{:},{:}\r\n".format(theta[0], theta[1], solenoid.get(), endofinstruction_Vals.get(), endoffile_Vals.get()))
