@@ -174,41 +174,40 @@ def TaskFindThetas():
     theta = []
     lastthet1 = math.pi/4
     lastthet2 = math.pi/6
-    while X_Vals.num_in() > 0:
-        curx = X_Vals.get()+60
-        cury = Y_Vals.get()
-        theta = myraph([curx,cury], [lastthet1, lastthet2])  # converting target(x,y) -> target(theta1, theta2)
-        
-        #small arm theta calcs
-        if theta[0] > 0:
-            theta[0] = theta[0] % (math.pi*2)
-            if theta[0] > math.pi:
-                theta[0] = theta[0] - (math.pi*2)
-        else:
-            theta[0] = theta[0] % (math.pi*2)
-            if theta[0] > math.pi:
-                theta[0] = theta[0] - (math.pi*2)
+    while:
+        if X_Vals.num_in() > 0:
+            curx = X_Vals.get()+60
+            cury = Y_Vals.get()
+            theta = myraph([curx,cury], [lastthet1, lastthet2])  # converting target(x,y) -> target(theta1, theta2)
+            
+            #small arm theta calcs
+            if theta[0] > 0:
+                theta[0] = theta[0] % (math.pi*2)
+                if theta[0] > math.pi:
+                    theta[0] = theta[0] - (math.pi*2)
+            else:
+                theta[0] = theta[0] % (math.pi*2)
+                if theta[0] > math.pi:
+                    theta[0] = theta[0] - (math.pi*2)
 
-        #small arm theta calcs
-        if theta[1] > 0:
-            theta[1] = theta[1] % (math.pi*2)
-            if theta[1] > math.pi:
-                theta[1] = theta[1] - (math.pi*2)
-        else:
-            theta[1] = theta[1] % (math.pi*2)
-            if theta[1] > math.pi:
-                theta[1] = theta[1] - (math.pi*2)
+            #small arm theta calcs
+            if theta[1] > 0:
+                theta[1] = theta[1] % (math.pi*2)
+                if theta[1] > math.pi:
+                    theta[1] = theta[1] - (math.pi*2)
+            else:
+                theta[1] = theta[1] % (math.pi*2)
+                if theta[1] > math.pi:
+                    theta[1] = theta[1] - (math.pi*2)
 
-        lastthet1 = theta[0]
-        lastthet2 = theta[1]
-        solenoid1 = solenoid.get()
-        end_of_instr = endofinstruction_Vals.get()
-        end_file = endoffile_Vals.get()
-        stuff = ("{:},{:},{:},{:},{:}\r\n".format(theta[0], theta[1], solenoid1, end_of_instr, end_file))
-        uart.write(stuff)
-        TaskMoveMotors(theta[0], theta[1], solenoid1)
-        yield (0)
-    while True:
+            lastthet1 = theta[0]
+            lastthet2 = theta[1]
+            solenoid1 = solenoid.get()
+            end_of_instr = endofinstruction_Vals.get()
+            end_file = endoffile_Vals.get()
+            stuff = ("{:},{:},{:},{:},{:}\r\n".format(theta[0], theta[1], solenoid1, end_of_instr, end_file))
+            uart.write(stuff)
+            TaskMoveMotors(theta[0], theta[1], solenoid1)
         yield (0)
 
 def TaskMoveMotors(theta1, theta2, solenoid):
