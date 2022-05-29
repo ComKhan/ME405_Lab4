@@ -50,67 +50,65 @@ def parseHPGL(filename):
 
     return lines
 
-def draw(listy, plotting):
-    """Takes double nested list from parseHPGL function and outputs interpolated list """
+def draw(instr, plotting):
+    """Takes instruction in list form ([instruction, points]) from parseHPGL function and fills queue with data """
     interpolated_xy_points = []
     plots = []
     lastloc = [0,0]
-    for instr in listy:
-        if instr[0] == 'IN':
-            pass    # will be used ot initialize whole thang
+    if instr[0] == 'IN':  # IN is ending sequence, first IN must be deleted in HPGL file
+        solenoid.put(0)
+        X_Vals.put(0)
+        Y_Vals.put(0)
+        endofinstruction_Vals.put(1)
+        endoffile_Vals.put(1)
+    
+    elif instr[0] == 'SP':
+        pass    # will be used to change colors
+
+    elif instr[0] == 'PU':
+        plotting.drawing = 0
+        interpolated_instr_points = interpolate(instrconv(instr),lastloc)
+        interpolated_xy_points.append(interpolated_instr_points) # converting instruction into points and interpolation of that data
+        for i in range(len(interpolated_instr_points)-1):
+            solenoid.put(plotting.drawing)
+            X_Vals.put(interpolated_instr_points[i][0])
+            Y_Vals.put(interpolated_instr_points[i][1])
+            endofinstruction_Vals.put(0)
+            endoffile_Vals.put(0)
+        solenoid.put(plotting.drawing)
+        X_Vals.put(interpolated_instr_points[-1][0])
+        Y_Vals.put(interpolated_instr_points[-1][1])
+        endofinstruction_Vals.put(1)
+        endoffile_Vals.put(0)
+        lastloc = interpolated_instr_points[-1]
+        #x_actuals = [[x[0]/2/math.pi*384,(x[1]+x[0])/2/math.pi*384] for x in interpolated_thetas]
+
+        # funtion to raise solenoid
+        # loop to move through target locations
+
+    elif instr[0] == 'PD':
+        plotting.drawing = 1
+        interpolated_instr_points = interpolate(instrconv(instr),lastloc)
+        interpolated_xy_points.append(interpolated_instr_points) # converting instruction into points and interpolation of that data
+        for i in range(len(interpolated_instr_points)-1):
+            solenoid.put(plotting.drawing)
+            X_Vals.put(interpolated_instr_points[i][0])
+            Y_Vals.put(interpolated_instr_points[i][1])
+            endofinstruction_Vals.put(0)
+            endoffile_Vals.put(0)
+        solenoid.put(plotting.drawing)
+        X_Vals.put(interpolated_instr_points[-1][0])
+        Y_Vals.put(interpolated_instr_points[-1][1])
+        endofinstruction_Vals.put(1)
+        endoffile_Vals.put(0)
+        lastloc = interpolated_instr_points[-1]
+        #x_actuals = [[x[0]/2/math.pi*384,(x[1]+x[0])/2/math.pi*384] for x in interpolated_thetas]
+
+        #interpolate()
+        # funcion to drop solenoid
+        # loop to move through target locations
         
-        elif instr[0] == 'SP':
-            pass    # will be used to change colors
-
-        elif instr[0] == 'PU':
-            plotting.drawing = 0
-            interpolated_instr_points = interpolate(instrconv(instr),lastloc)
-            interpolated_xy_points.append(interpolated_instr_points) # converting instruction into points and interpolation of that data
-            for i in range(len(interpolated_instr_points)-1):
-                solenoid.put(plotting.drawing)
-                X_Vals.put(interpolated_instr_points[i][0])
-                Y_Vals.put(interpolated_instr_points[i][1])
-                endofinstruction_Vals.put(0)
-                endoffile_Vals.put(0)
-            solenoid.put(plotting.drawing)
-            X_Vals.put(interpolated_instr_points[-1][0])
-            Y_Vals.put(interpolated_instr_points[-1][1])
-            endofinstruction_Vals.put(1)
-            endoffile_Vals.put(0)
-            lastloc = interpolated_instr_points[-1]
-            #x_actuals = [[x[0]/2/math.pi*384,(x[1]+x[0])/2/math.pi*384] for x in interpolated_thetas]
-
-            # funtion to raise solenoid
-            # loop to move through target locations
-
-        elif instr[0] == 'PD':
-            plotting.drawing = 1
-            interpolated_instr_points = interpolate(instrconv(instr),lastloc)
-            interpolated_xy_points.append(interpolated_instr_points) # converting instruction into points and interpolation of that data
-            for i in range(len(interpolated_instr_points)-1):
-                solenoid.put(plotting.drawing)
-                X_Vals.put(interpolated_instr_points[i][0])
-                Y_Vals.put(interpolated_instr_points[i][1])
-                endofinstruction_Vals.put(0)
-                endoffile_Vals.put(0)
-            solenoid.put(plotting.drawing)
-            X_Vals.put(interpolated_instr_points[-1][0])
-            Y_Vals.put(interpolated_instr_points[-1][1])
-            endofinstruction_Vals.put(1)
-            endoffile_Vals.put(0)
-            lastloc = interpolated_instr_points[-1]
-            #x_actuals = [[x[0]/2/math.pi*384,(x[1]+x[0])/2/math.pi*384] for x in interpolated_thetas]
-
-            #interpolate()
-            # funcion to drop solenoid
-            # loop to move through target locations
-            pass
-    solenoid.put(0)
-    X_Vals.put(0)
-    Y_Vals.put(0)
-    endofinstruction_Vals.put(1)
-    endoffile_Vals.put(1)
-    return interpolated_xy_points
+    #return interpolated_xy_points
 
 def instrconv(instr):
     """Takes Output of interpolate function as input and outputs corresponding x,y coord for interpolation func. """
@@ -127,7 +125,7 @@ def instrconv(instr):
         i += 2
     return motor_in
 
-def interpolate(targets, curr_location, resolution = 1):
+def interpolate(targets, curr_location, resolution = 1):  # too many points for memory right now
     """takes a list of targets [[x,y], ...] and current location and returns a new list 
     with as many points to 
     match the desired resolution. Resolution is in dots per inch(dpi)."""
@@ -174,7 +172,7 @@ def TaskFindThetas():
     theta = []
     lastthet1 = math.pi/4
     lastthet2 = math.pi/6
-    while:
+    while True:
         if X_Vals.num_in() > 0:
             curx = X_Vals.get()+60
             cury = Y_Vals.get()
@@ -213,13 +211,14 @@ def TaskFindThetas():
 def TaskMoveMotors(theta1, theta2, solenoid):
     """if solenoid:
         actuaute_solenoid(soelnoid)"""
+    PB8.value(solenoid)
     motor2.setloc(theta1)
     motor1.setloc(theta2-theta1)
     print(solenoid)
-    PB8.value(solenoid)
+
     
-
-
+def drawwrapper():
+        draw(listy.pop(0), plotting)
 
 
 if __name__ == "__main__":
@@ -262,15 +261,19 @@ if __name__ == "__main__":
     findthet = cotask.Task (TaskFindThetas, name = 'Task_1', priority = 2, 
                          period = 10, profile = True, trace = False)
 
+    rundraw = cotask.Task (drawwrapper, name = 'Task_2', priority = 2,
+                         period = 10, profile = True, trace = False)
+
     uart = pyb.UART(2, 115200)
     uart.init(115200, bits=8, parity=None, stop = 1)
 
     listy = parseHPGL("drawing.hpgl")
     plotting = solenoidobj()
-    draw(listy,plotting)
-    
+    listy.pop(0)
+
     #cotask.task_list.append (taskbut)
     cotask.task_list.append(findthet)
+    cotask.task_list.append(rundraw)
 
     # Run the memory garbage collector to ensure memory is as defragmented as
     # possible before the real-time scheduler is started
