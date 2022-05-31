@@ -54,20 +54,25 @@ def draw(instr, plotting):
     """Takes instruction in list form ([instruction, points]) from parseHPGL function and fills queue with data """
     interpolated_xy_points = []
     plots = []
-    lastloc = [0,0]
     if instr[0] == 'IN':  # IN is ending sequence, first IN must be deleted in HPGL file
-        solenoid.put(0)
-        X_Vals.put(0)
-        Y_Vals.put(0)
-        endofinstruction_Vals.put(1)
-        endoffile_Vals.put(1)
+        if inshare.get() == 0:
+            inshare.put(1)
+            xlast.put(40)
+            ylast.put(0)
+            pass
+        else:
+            solenoid.put(0)
+            X_Vals.put(40)
+            Y_Vals.put(0)
+            endofinstruction_Vals.put(1)
+            endoffile_Vals.put(1)
     
     elif instr[0] == 'SP':
         pass    # will be used to change colors
 
     elif instr[0] == 'PU':
         plotting.drawing = 0
-        interpolated_instr_points = interpolate(instrconv(instr),lastloc)
+        interpolated_instr_points = interpolate(instrconv(instr),[xlast.get(), ylast.get()])
         interpolated_xy_points.append(interpolated_instr_points) # converting instruction into points and interpolation of that data
         for i in range(len(interpolated_instr_points)-1):
             solenoid.put(plotting.drawing)
@@ -80,7 +85,9 @@ def draw(instr, plotting):
         Y_Vals.put(interpolated_instr_points[-1][1])
         endofinstruction_Vals.put(1)
         endoffile_Vals.put(0)
-        lastloc = interpolated_instr_points[-1]
+        xlast.put(interpolated_instr_points[-1][0])
+        ylast.put(interpolated_instr_points[-1][1])
+
         #x_actuals = [[x[0]/2/math.pi*384,(x[1]+x[0])/2/math.pi*384] for x in interpolated_thetas]
 
         # funtion to raise solenoid
@@ -88,7 +95,7 @@ def draw(instr, plotting):
 
     elif instr[0] == 'PD':
         plotting.drawing = 1
-        interpolated_instr_points = interpolate(instrconv(instr),lastloc)
+        interpolated_instr_points = interpolate(instrconv(instr),[xlast.get(), ylast.get()])
         interpolated_xy_points.append(interpolated_instr_points) # converting instruction into points and interpolation of that data
         for i in range(len(interpolated_instr_points)-1):
             solenoid.put(plotting.drawing)
@@ -101,7 +108,9 @@ def draw(instr, plotting):
         Y_Vals.put(interpolated_instr_points[-1][1])
         endofinstruction_Vals.put(1)
         endoffile_Vals.put(0)
-        lastloc = interpolated_instr_points[-1]
+        xlast.put(interpolated_instr_points[-1][0])
+        ylast.put(interpolated_instr_points[-1][1])
+
         #x_actuals = [[x[0]/2/math.pi*384,(x[1]+x[0])/2/math.pi*384] for x in interpolated_thetas]
 
         #interpolate()
@@ -244,6 +253,11 @@ if __name__ == "__main__":
     motor2 = stepper(PC3, PC0)
 
     # Create a share and a queue to test function and diagnostic printouts
+    xlast = task_share.Share('f', thread_protect = False, name = "share 0")
+    
+    ylast = task_share.Share('f', thread_protect = False, name = "share 1")
+    
+    inshare = task_share.Share('I', thread_protect = False, name = "share 2")
 
     X_Vals = task_share.Queue ('f', 1000, thread_protect = False, overwrite = False,
                            name = "X Values")
@@ -265,7 +279,7 @@ if __name__ == "__main__":
     
     listy = parseHPGL("drawing.hpgl")
     plotting = solenoidobj()
-    listy.pop(0)
+    inshare.put(0)
     
     findthet = cotask.Task (TaskFindThetas, name = 'Task_1', priority = 2, 
                          period = 10, profile = True, trace = False)
@@ -278,7 +292,6 @@ if __name__ == "__main__":
 
     listy = parseHPGL("drawing.hpgl")
     plotting = solenoidobj()
-    listy.pop(0)
 
     #cotask.task_list.append (taskbut)
     cotask.task_list.append(findthet)
