@@ -56,8 +56,9 @@ def draw(instr, plotting):
     plots = []
     if instr[0] == 'IN':  # IN is ending sequence, first IN must be deleted in HPGL file
         if inshare.get() == 0:
+            refill(1)
             inshare.put(1)
-            xlast.put(40)
+            xlast.put(0)
             ylast.put(0)
             pass
         else:
@@ -233,6 +234,63 @@ def drawwrapper():
             draw(instr, plotting)
         yield
 
+def refill(color):
+    PB8.value(0)
+    motor2.setloc(0)
+    motor1.setloc(0)
+    pyb.delay(2000)
+    PB8.value(1)
+    pyb.delay(500)
+    PB8.value(0)
+    pyb.delay(500)
+    PB8.value(1)
+    pyb.delay(500)
+    PB8.value(0)
+    pyb.delay(500)
+    PB8.value(1)
+    pyb.delay(500)
+    PB8.value(0)
+            
+            
+    if color == 0:
+        [theta1, theta2] = myraph([60,60], [-1*math.pi/4, math.pi/6])
+    else:
+        [theta1, theta2] = myraph([60,-50], [-1*math.pi/4, 0])
+
+    #small arm theta calcs
+    if theta1 > 0:
+        theta1 = theta1 % (math.pi*2)
+        if theta1 > math.pi:
+            theta1 = theta1 - (math.pi*2)
+    else:
+        theta1 = theta1 % (math.pi*2)
+        if theta1 > math.pi:
+            theta1 = theta1 - (math.pi*2)
+
+    #Big arm theta calcs
+    if theta2 > 0:
+        theta2 = theta2 % (math.pi*2)
+        if theta2 > math.pi:
+            theta2 = theta2 - (math.pi*2)
+    else:
+        theta2 = theta2 % (math.pi*2)
+        if theta2 > math.pi:
+            theta2 = theta2 - (math.pi*2)
+            
+    motor2.setloc(theta1)
+    motor1.setloc(theta2-theta1)
+    pyb.delay(2000)
+    PB8.value(1)
+    pyb.delay(500)
+    PB8.value(0)
+    pyb.delay(500)
+    PB8.value(1)
+    pyb.delay(500)
+    PB8.value(0)
+    pyb.delay(500)
+    PB8.value(1)
+    pyb.delay(500)
+    PB8.value(0)
 
 if __name__ == "__main__":
 
