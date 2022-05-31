@@ -74,13 +74,14 @@ def main():
         ax.plot(x1,y1,x2,y2, color = "red")
         return theta
 
+    anim = FuncAnimation(fig,animate,interval = 1, frames = len(thets))
+    anim.save("func.gif", fps = 30)
+    plt.close()
+
     plt.figure(1)
     theta_1, = plt.plot(range(len(thets)), [theta[1] for theta in thets])
     theta_0, = plt.plot(range(len(thets)), [theta[0] for theta in thets])
     plt.legend([theta_0, theta_1], ["theta 0", "theta 1"])
-
-
-    anim = FuncAnimation(fig,animate,interval = 1, frames = len(thets))
-    anim.save("func.gif", fps = 30)
+    plt.show()
 
 main()

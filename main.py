@@ -224,14 +224,21 @@ def TaskFindThetas():
             uart.write(stuff)
             if col != colold:
                 refill(col)
-            TaskMoveMotors(theta[0], theta[1], solenoid1)
+                refillcount.put(0)
+            TaskMoveMotors(theta[0], theta[1], solenoid1, col)
         yield (0)
 
-def TaskMoveMotors(theta1, theta2, solenoid):
+def TaskMoveMotors(theta1, theta2, solenoid, color):
     """if solenoid:
         actuaute_solenoid(soelnoid)"""
+    if solenoid == 1:
+        refillcount.put(refillcount.get()+1)
+    if refillcount.get() >= 100:
+        refill(color)
+        refillcount.put(0)
     motor2.setloc(theta1)
     motor1.setloc(theta2-theta1)
+    pyb.delay(10)
     PB8.value(solenoid)
     print(solenoid)
 
@@ -325,6 +332,8 @@ if __name__ == "__main__":
     ylast = task_share.Share('f', thread_protect = False, name = "share 1")
     
     inshare = task_share.Share('I', thread_protect = False, name = "share 2")
+    
+    refillcount = task_share.Share('I', thread_protect = False, name = "share 3")
     
     curcolor = task_share.Share('I', thread_protect = False, name = "share 4")
     
