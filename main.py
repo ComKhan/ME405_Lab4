@@ -56,7 +56,6 @@ def draw(instr, plotting):
     plots = []
     if instr[0] == 'IN':  # IN is ending sequence, first IN must be deleted in HPGL file
         if inshare.get() == 0:
-            refill(1)
             inshare.put(1)
             xlast.put(0)
             ylast.put(0)
@@ -67,9 +66,10 @@ def draw(instr, plotting):
             Y_Vals.put(0)
             endofinstruction_Vals.put(1)
             endoffile_Vals.put(1)
+            colors.put(curcolor.get())
     
     elif instr[0] == 'SP':
-        pass    # will be used to change colors
+        curcolor.put(int(instr[1]))
 
     elif instr[0] == 'PU':
         plotting.drawing = 0
@@ -79,11 +79,13 @@ def draw(instr, plotting):
             solenoid.put(plotting.drawing)
             X_Vals.put(interpolated_instr_points[i][0])
             Y_Vals.put(interpolated_instr_points[i][1])
+            colors.put(curcolor.get())
             endofinstruction_Vals.put(0)
             endoffile_Vals.put(0)
         solenoid.put(plotting.drawing)
         X_Vals.put(interpolated_instr_points[-1][0])
         Y_Vals.put(interpolated_instr_points[-1][1])
+        colors.put(curcolor.get())
         endofinstruction_Vals.put(1)
         endoffile_Vals.put(0)
         xlast.put(interpolated_instr_points[-1][0])
@@ -102,11 +104,13 @@ def draw(instr, plotting):
             solenoid.put(plotting.drawing)
             X_Vals.put(interpolated_instr_points[i][0])
             Y_Vals.put(interpolated_instr_points[i][1])
+            colors.put(curcolor.get())
             endofinstruction_Vals.put(0)
             endoffile_Vals.put(0)
         solenoid.put(plotting.drawing)
         X_Vals.put(interpolated_instr_points[-1][0])
         Y_Vals.put(interpolated_instr_points[-1][1])
+        colors.put(curcolor.get())
         endofinstruction_Vals.put(1)
         endoffile_Vals.put(0)
         xlast.put(interpolated_instr_points[-1][0])
@@ -182,6 +186,7 @@ def TaskFindThetas():
     theta = []
     lastthet1 = math.pi/4
     lastthet2 = math.pi/6
+    col = 2
     while True:
         if X_Vals.num_in() > 0:
             curx = X_Vals.get()+60
@@ -213,17 +218,21 @@ def TaskFindThetas():
             solenoid1 = solenoid.get()
             end_of_instr = endofinstruction_Vals.get()
             end_file = endoffile_Vals.get()
-            stuff = ("{:},{:},{:},{:},{:}\r\n".format(theta[0], theta[1], solenoid1, end_of_instr, end_file))
+            colold = col
+            col = colors.get()
+            stuff = ("{:},{:},{:},{:},{:},{:}\r\n".format(theta[0], theta[1], solenoid1, end_of_instr, end_file, col))
             uart.write(stuff)
+            if col != colold:
+                refill(col)
             TaskMoveMotors(theta[0], theta[1], solenoid1)
         yield (0)
 
 def TaskMoveMotors(theta1, theta2, solenoid):
     """if solenoid:
         actuaute_solenoid(soelnoid)"""
-    PB8.value(solenoid)
     motor2.setloc(theta1)
     motor1.setloc(theta2-theta1)
+    PB8.value(solenoid)
     print(solenoid)
 
     
@@ -316,6 +325,11 @@ if __name__ == "__main__":
     ylast = task_share.Share('f', thread_protect = False, name = "share 1")
     
     inshare = task_share.Share('I', thread_protect = False, name = "share 2")
+    
+    curcolor = task_share.Share('I', thread_protect = False, name = "share 4")
+    
+    colors = task_share.Queue ('I', 1000, thread_protect = False, overwrite = False,
+                           name = "Colors")
 
     X_Vals = task_share.Queue ('f', 1000, thread_protect = False, overwrite = False,
                            name = "X Values")

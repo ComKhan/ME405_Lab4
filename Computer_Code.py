@@ -8,14 +8,16 @@ from matplotlib.animation import FuncAnimation
 def main():
     ser = serial.Serial('COM4', 115200)
     ser.flush
-    vals = [0,0,0,0,0]
+    vals = [0,0,0,0,0,0]
     thets = []
     plot = []
+    color = []
     while vals[4] != 1:
         print("loop1")
-        templist1, templist2, vals = getserial(ser)
+        templist1, templist2, templist3, vals = getserial(ser)
         thets += templist1
         plot += templist2
+        color += templist3
 
     fig, ax = plt.subplots()
     print(thets)
@@ -30,8 +32,10 @@ def main():
         ax.lines.clear()
         theta = thets[i]
         for j in range(len(thets[:i])-1):
-            if plot[j] == 1 and plot[j+1] == 1:
+            if plot[j] == 1 and plot[j+1] == 1 and color[i] == 1:
                 ax.plot([x[j],x[j+1]],[y[j],y[j+1]], color = "black")
+            elif plot[j] == 1 and plot[j+1] == 1 and color[i] == 0:
+                ax.plot([x[j],x[j+1]],[y[j],y[j+1]], color = "red")
         x1 = [0,math.cos(theta[0])]
         y1 = [0,math.sin(theta[0])]
         x2 = [math.cos(theta[0]), math.cos(theta[0])+ math.cos(theta[1])]
@@ -52,7 +56,8 @@ def main():
 def getserial(ser):
     thetas = []
     plot = []
-    vals = [0, 0, 0, 0, 0]
+    vals = [0, 0, 0, 0, 0, 0]
+    color = []
 
     while vals[3] != 1:
         if ser.in_waiting > 1:
@@ -61,7 +66,8 @@ def getserial(ser):
             vals = [float(val) for val in vals]
             thetas.append([vals[0], vals[1]])
             plot.append(vals[2])
+            color.append(vals[5])
 
-    return thetas, plot, vals
+    return thetas, plot, color, vals
 
 main()
