@@ -38,9 +38,9 @@ def main():
                 y = [math.sin(theta[0])+ math.sin(theta[1]) for theta in thets]
                 for j in range(len(thets[:i])-1):
                     if plot[j] == 1 and plot[j+1] == 1 and color[j] == 1:
-                        ax.plot([x[j],x[j+1]],[y[j],y[j+1]], color = "green")
+                        ax.plot([x[j],x[j+1]],[y[j],y[j+1]], color = "blue")
                     elif plot[j] == 1 and plot[j+1] == 1 and color[j] == 0:
-                        ax.plot([x[j],x[j+1]],[y[j],y[j+1]], color = "orange")
+                        ax.plot([x[j],x[j+1]],[y[j],y[j+1]], color = "red")
                 x1 = [0,math.cos(theta[0])]
                 y1 = [0,math.sin(theta[0])]
                 x2 = [math.cos(theta[0]), math.cos(theta[0])+ math.cos(theta[1])]
@@ -64,9 +64,9 @@ def main():
         theta = thets[i]
         for j in range(len(thets[:i])-1):
             if plot[j] == 1 and plot[j+1] == 1 and color[j] == 1:
-                ax.plot([x[j],x[j+1]],[y[j],y[j+1]], color = "green")
+                ax.plot([x[j],x[j+1]],[y[j],y[j+1]], color = "blue")
             elif plot[j] == 1 and plot[j+1] == 1 and color[j] == 0:
-                ax.plot([x[j],x[j+1]],[y[j],y[j+1]], color = "orange")
+                ax.plot([x[j],x[j+1]],[y[j],y[j+1]], color = "red")
         x1 = [0,math.cos(theta[0])]
         y1 = [0,math.sin(theta[0])]
         x2 = [math.cos(theta[0]), math.cos(theta[0])+ math.cos(theta[1])]

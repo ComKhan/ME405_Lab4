@@ -33,12 +33,11 @@ class stepper():
         self.writeSPI(bytearray(bits))       
         
         #write pulse_div & ramp_div
-        bits = [0x18, 0x00, 0x77, 0x00]  
+        bits = [0x18, 0x00, 0xaa, 0x00]  
         self.writeSPI(bytearray(bits))
         
         #calculate pmul & pdiv
         pmul, pdiv = pcalc(1024, 10, 10) # inputs: a_max, pmul, pdiv
-        print(pmul, pdiv)
 
         #write pmul & pdiv
         bits = [0b00010010, 0x01, pmul & 0xff, pdiv & 0x0f]    
@@ -67,31 +66,20 @@ class stepper():
         # MOSI line will maintain voltage of last output bit on write bytearray 
 
     def setloc(self, theta):  # input radians
-        where = int(theta/(2*math.pi)*384)  # 32 bit converted to steps
-        where = 192 + where
-        bitstar = [0x00, 0x00, 0xff & (where>>8), 0xff & where]
-        self.writeSPI(bytearray(bitstar))
+        where = 192 + int(theta/(2*math.pi)*384)  # 32 bit converted to steps
+        bitstar = bytearray([0x00, 0x00, 0xff & (where>>8), 0xff & where])
+        self.writeSPI((bitstar))
         ba = bytearray(4)
-        bits = [0x03, 0x00, 0x00, 0x00]
-        while ba != bytearray(bitstar):
-            self.spi.send_recv(bits, ba, timeout = 500)
-        
-
-def main():
-    #initialize clk pin    
-    PC7 = Pin(Pin.cpu.C7, mode = Pin.OUT_PP,)  # PC7 configured for GPIO output
-    tim = Timer(3, period = 3, prescaler = 0) #timer3 @ 80MHz
-    tim.channel(2, pin = PC7, mode = Timer.PWM, pulse_width = 2)  
-    # configures PC7 for PWM modulation to act as a clock signal
-
-    #initialize cs and en pins
-    PC2 = Pin(Pin.cpu.C2, mode = Pin.OUT_PP, value = 1)  #CS1
-    PC3 = Pin(Pin.cpu.C3, mode = Pin.OUT_PP, value = 1)  #CS2
-    PC4 = Pin(Pin.cpu.C4, mode = Pin.OUT_PP, value = 1)  #EN1
-    PC0 = Pin(Pin.cpu.C0, mode = Pin.OUT_PP, value = 1)  #EN2
-
-    motor1 = stepper(PC2, PC4)
-    motor2 = stepper(PC3, PC0)
+        bits = bytearray([0x03, 0x00, 0x00, 0x00])
+        while [ba[3],ba[2]] != [bitstar[3],bitstar[2]]:
+            pyb.delay(10)
+            ba = self.readSPI(bits)
+#             print("\n Loc")
+#             print(ba[3])
+            #for idx,byte in enumerate(ba): print(f"b{3-idx}: {byte:#010b} {byte:#04x}")
+#             print("\n Target")
+#             print(bitstar[3])
+            #for idx,byte in enumerate(bitstar): print(f"b{3-idx}: {byte:#010b} {byte:#04x}")
 
 
 def pcalc(a_max, ramp_div, pulse_div):  ## is this a motor1.pcalc func now?? A: No its not inside the class definition - V
